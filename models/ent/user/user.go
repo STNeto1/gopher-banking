@@ -19,10 +19,21 @@ const (
 	FieldEmail = "email"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
+	// FieldBalance holds the string denoting the balance field in the database.
+	FieldBalance = "balance"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeDeposits holds the string denoting the deposits edge name in mutations.
+	EdgeDeposits = "deposits"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// DepositsTable is the table that holds the deposits relation/edge.
+	DepositsTable = "deposits"
+	// DepositsInverseTable is the table name for the Deposit entity.
+	// It exists in this package in order to avoid circular dependency with the "deposit" package.
+	DepositsInverseTable = "deposits"
+	// DepositsColumn is the table column denoting the deposits relation/edge.
+	DepositsColumn = "user_deposits"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -31,6 +42,7 @@ var Columns = []string{
 	FieldName,
 	FieldEmail,
 	FieldPassword,
+	FieldBalance,
 	FieldCreatedAt,
 }
 

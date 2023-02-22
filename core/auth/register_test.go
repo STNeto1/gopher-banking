@@ -35,6 +35,7 @@ func TestCreatingUserWithExistingEmail(t *testing.T) {
 		SetName("John Doe").
 		SetEmail(existingMail).
 		SetPassword("some-password").
+		SetBalance(0).
 		Save(context.Background())
 	assert.Nil(t, err)
 

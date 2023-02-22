@@ -34,6 +34,7 @@ func (s *AuthService) RegisterUser(ctx context.Context, payload RegisterUserPayl
 		SetName(payload.Name).
 		SetEmail(payload.Email).
 		SetPassword(string(pwdHash)).
+		SetBalance(0.0).
 		Save(ctx)
 
 	if err != nil {

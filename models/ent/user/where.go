@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -68,6 +69,11 @@ func Email(v string) predicate.User {
 // Password applies equality check predicate on the "password" field. It's identical to PasswordEQ.
 func Password(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldPassword, v))
+}
+
+// Balance applies equality check predicate on the "balance" field. It's identical to BalanceEQ.
+func Balance(v float64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBalance, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -270,6 +276,46 @@ func PasswordContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldPassword, v))
 }
 
+// BalanceEQ applies the EQ predicate on the "balance" field.
+func BalanceEQ(v float64) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldBalance, v))
+}
+
+// BalanceNEQ applies the NEQ predicate on the "balance" field.
+func BalanceNEQ(v float64) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldBalance, v))
+}
+
+// BalanceIn applies the In predicate on the "balance" field.
+func BalanceIn(vs ...float64) predicate.User {
+	return predicate.User(sql.FieldIn(FieldBalance, vs...))
+}
+
+// BalanceNotIn applies the NotIn predicate on the "balance" field.
+func BalanceNotIn(vs ...float64) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldBalance, vs...))
+}
+
+// BalanceGT applies the GT predicate on the "balance" field.
+func BalanceGT(v float64) predicate.User {
+	return predicate.User(sql.FieldGT(FieldBalance, v))
+}
+
+// BalanceGTE applies the GTE predicate on the "balance" field.
+func BalanceGTE(v float64) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldBalance, v))
+}
+
+// BalanceLT applies the LT predicate on the "balance" field.
+func BalanceLT(v float64) predicate.User {
+	return predicate.User(sql.FieldLT(FieldBalance, v))
+}
+
+// BalanceLTE applies the LTE predicate on the "balance" field.
+func BalanceLTE(v float64) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldBalance, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -308,6 +354,33 @@ func CreatedAtLT(v time.Time) predicate.User {
 // CreatedAtLTE applies the LTE predicate on the "created_at" field.
 func CreatedAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// HasDeposits applies the HasEdge predicate on the "deposits" edge.
+func HasDeposits() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DepositsTable, DepositsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDepositsWith applies the HasEdge predicate on the "deposits" edge with a given conditions (other predicates).
+func HasDepositsWith(preds ...predicate.Deposit) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(DepositsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DepositsTable, DepositsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

@@ -46,6 +46,7 @@ func generateAnyValidUser(c *ent.Client) (*ent.User, error) {
 		SetName("some name").
 		SetEmail(someEmail).
 		SetPassword(string(pwdHash)).
+		SetBalance(0).
 		Save(context.Background())
 }
 

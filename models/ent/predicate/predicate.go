@@ -6,5 +6,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Deposit is the predicate function for deposit builders.
+type Deposit func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

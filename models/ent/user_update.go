@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"models/ent/deposit"
 	"models/ent/predicate"
 	"models/ent/user"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -46,6 +48,19 @@ func (uu *UserUpdate) SetPassword(s string) *UserUpdate {
 	return uu
 }
 
+// SetBalance sets the "balance" field.
+func (uu *UserUpdate) SetBalance(f float64) *UserUpdate {
+	uu.mutation.ResetBalance()
+	uu.mutation.SetBalance(f)
+	return uu
+}
+
+// AddBalance adds f to the "balance" field.
+func (uu *UserUpdate) AddBalance(f float64) *UserUpdate {
+	uu.mutation.AddBalance(f)
+	return uu
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (uu *UserUpdate) SetCreatedAt(t time.Time) *UserUpdate {
 	uu.mutation.SetCreatedAt(t)
@@ -60,9 +75,45 @@ func (uu *UserUpdate) SetNillableCreatedAt(t *time.Time) *UserUpdate {
 	return uu
 }
 
+// AddDepositIDs adds the "deposits" edge to the Deposit entity by IDs.
+func (uu *UserUpdate) AddDepositIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddDepositIDs(ids...)
+	return uu
+}
+
+// AddDeposits adds the "deposits" edges to the Deposit entity.
+func (uu *UserUpdate) AddDeposits(d ...*Deposit) *UserUpdate {
+	ids := make([]uuid.UUID, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return uu.AddDepositIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearDeposits clears all "deposits" edges to the Deposit entity.
+func (uu *UserUpdate) ClearDeposits() *UserUpdate {
+	uu.mutation.ClearDeposits()
+	return uu
+}
+
+// RemoveDepositIDs removes the "deposits" edge to Deposit entities by IDs.
+func (uu *UserUpdate) RemoveDepositIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveDepositIDs(ids...)
+	return uu
+}
+
+// RemoveDeposits removes "deposits" edges to Deposit entities.
+func (uu *UserUpdate) RemoveDeposits(d ...*Deposit) *UserUpdate {
+	ids := make([]uuid.UUID, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return uu.RemoveDepositIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -110,8 +161,68 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 	}
+	if value, ok := uu.mutation.Balance(); ok {
+		_spec.SetField(user.FieldBalance, field.TypeFloat64, value)
+	}
+	if value, ok := uu.mutation.AddedBalance(); ok {
+		_spec.AddField(user.FieldBalance, field.TypeFloat64, value)
+	}
 	if value, ok := uu.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if uu.mutation.DepositsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedDepositsIDs(); len(nodes) > 0 && !uu.mutation.DepositsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.DepositsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -151,6 +262,19 @@ func (uuo *UserUpdateOne) SetPassword(s string) *UserUpdateOne {
 	return uuo
 }
 
+// SetBalance sets the "balance" field.
+func (uuo *UserUpdateOne) SetBalance(f float64) *UserUpdateOne {
+	uuo.mutation.ResetBalance()
+	uuo.mutation.SetBalance(f)
+	return uuo
+}
+
+// AddBalance adds f to the "balance" field.
+func (uuo *UserUpdateOne) AddBalance(f float64) *UserUpdateOne {
+	uuo.mutation.AddBalance(f)
+	return uuo
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (uuo *UserUpdateOne) SetCreatedAt(t time.Time) *UserUpdateOne {
 	uuo.mutation.SetCreatedAt(t)
@@ -165,9 +289,45 @@ func (uuo *UserUpdateOne) SetNillableCreatedAt(t *time.Time) *UserUpdateOne {
 	return uuo
 }
 
+// AddDepositIDs adds the "deposits" edge to the Deposit entity by IDs.
+func (uuo *UserUpdateOne) AddDepositIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddDepositIDs(ids...)
+	return uuo
+}
+
+// AddDeposits adds the "deposits" edges to the Deposit entity.
+func (uuo *UserUpdateOne) AddDeposits(d ...*Deposit) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return uuo.AddDepositIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearDeposits clears all "deposits" edges to the Deposit entity.
+func (uuo *UserUpdateOne) ClearDeposits() *UserUpdateOne {
+	uuo.mutation.ClearDeposits()
+	return uuo
+}
+
+// RemoveDepositIDs removes the "deposits" edge to Deposit entities by IDs.
+func (uuo *UserUpdateOne) RemoveDepositIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveDepositIDs(ids...)
+	return uuo
+}
+
+// RemoveDeposits removes "deposits" edges to Deposit entities.
+func (uuo *UserUpdateOne) RemoveDeposits(d ...*Deposit) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return uuo.RemoveDepositIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -245,8 +405,68 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 	}
+	if value, ok := uuo.mutation.Balance(); ok {
+		_spec.SetField(user.FieldBalance, field.TypeFloat64, value)
+	}
+	if value, ok := uuo.mutation.AddedBalance(); ok {
+		_spec.AddField(user.FieldBalance, field.TypeFloat64, value)
+	}
 	if value, ok := uuo.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if uuo.mutation.DepositsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedDepositsIDs(); len(nodes) > 0 && !uuo.mutation.DepositsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.DepositsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"models/ent/deposit"
 	"models/ent/user"
 	"time"
 
@@ -39,6 +40,12 @@ func (uc *UserCreate) SetPassword(s string) *UserCreate {
 	return uc
 }
 
+// SetBalance sets the "balance" field.
+func (uc *UserCreate) SetBalance(f float64) *UserCreate {
+	uc.mutation.SetBalance(f)
+	return uc
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (uc *UserCreate) SetCreatedAt(t time.Time) *UserCreate {
 	uc.mutation.SetCreatedAt(t)
@@ -65,6 +72,21 @@ func (uc *UserCreate) SetNillableID(u *uuid.UUID) *UserCreate {
 		uc.SetID(*u)
 	}
 	return uc
+}
+
+// AddDepositIDs adds the "deposits" edge to the Deposit entity by IDs.
+func (uc *UserCreate) AddDepositIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddDepositIDs(ids...)
+	return uc
+}
+
+// AddDeposits adds the "deposits" edges to the Deposit entity.
+func (uc *UserCreate) AddDeposits(d ...*Deposit) *UserCreate {
+	ids := make([]uuid.UUID, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return uc.AddDepositIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -123,6 +145,9 @@ func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.Password(); !ok {
 		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "User.password"`)}
 	}
+	if _, ok := uc.mutation.Balance(); !ok {
+		return &ValidationError{Name: "balance", err: errors.New(`ent: missing required field "User.balance"`)}
+	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "User.created_at"`)}
 	}
@@ -173,9 +198,32 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
 		_node.Password = value
 	}
+	if value, ok := uc.mutation.Balance(); ok {
+		_spec.SetField(user.FieldBalance, field.TypeFloat64, value)
+		_node.Balance = value
+	}
 	if value, ok := uc.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := uc.mutation.DepositsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.DepositsTable,
+			Columns: []string{user.DepositsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

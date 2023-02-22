@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -20,11 +21,14 @@ func (User) Fields() []ent.Field {
 		field.String("name"),
 		field.String("email").Unique(),
 		field.String("password"),
+		field.Float("balance"),
 		field.Time("created_at").Default(time.Now),
 	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("deposits", Deposit.Type),
+	}
 }

@@ -31,7 +31,12 @@ func TestLoginWithNoValidPassword(t *testing.T) {
 	pwdHash, err := bcrypt.GenerateFromPassword([]byte(correctPassword), bcrypt.DefaultCost)
 	assert.Nil(t, err)
 
-	_, err = client.User.Create().SetName("John Doe").SetEmail(existingMail).SetPassword(string(pwdHash)).Save(context.Background())
+	_, err = client.User.Create().
+		SetName("John Doe").
+		SetEmail(existingMail).
+		SetPassword(string(pwdHash)).
+		SetBalance(0).
+		Save(context.Background())
 	assert.Nil(t, err)
 
 	assert.Nil(t, err)
@@ -52,7 +57,13 @@ func TestLoginWithValidCredentials(t *testing.T) {
 	pwdHash, err := bcrypt.GenerateFromPassword([]byte(correctPassword), bcrypt.DefaultCost)
 	assert.Nil(t, err)
 
-	_, err = client.User.Create().SetName("John Doe").SetEmail(existingMail).SetPassword(string(pwdHash)).Save(context.Background())
+	_, err = client.User.
+		Create().
+		SetName("John Doe").
+		SetEmail(existingMail).
+		SetPassword(string(pwdHash)).
+		SetBalance(0).
+		Save(context.Background())
 	assert.Nil(t, err)
 	assert.Nil(t, err)
 
