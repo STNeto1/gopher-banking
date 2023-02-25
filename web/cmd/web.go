@@ -3,6 +3,8 @@ package main
 import (
 	ca "core/auth"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -19,6 +21,8 @@ func main() {
 	as := ca.NewAuthService(client, "some-secret", logger)
 
 	r := gin.Default()
+	store := cookie.NewStore([]byte("secret"))
+	r.Use(sessions.Sessions("bank.sessh", store))
 
 	auth.RegisterRoutes(r, as)
 

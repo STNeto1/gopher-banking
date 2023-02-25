@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"web/pkg/common/exceptions"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -33,7 +34,7 @@ func (h handler) Register(c *gin.Context) {
 		}
 	}
 
-	_, err := h.service.RegisterUser(c.Request.Context(), auth.RegisterUserPayload{
+	usr, err := h.service.RegisterUser(c.Request.Context(), auth.RegisterUserPayload{
 		Name:     body.Name,
 		Email:    body.Email,
 		Password: body.Password,
@@ -42,6 +43,19 @@ func (h handler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, exceptions.BadRequest("error creating user"))
 		return
 	}
+	token, err := h.service.GenerateToken(usr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, exceptions.InternalServerError("error while authenticating"))
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": ""})
+	session := sessions.Default(c)
+	session.Set("token", token)
+	err = session.Save()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, exceptions.InternalServerError("error while authenticating"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }

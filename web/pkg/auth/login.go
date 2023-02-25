@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"web/pkg/common/exceptions"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -31,11 +32,25 @@ func (h handler) Login(c *gin.Context) {
 		}
 	}
 
-	_, err := h.service.LoginUser(c.Request.Context(), body.Email, body.Password)
+	usr, err := h.service.LoginUser(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, exceptions.BadRequest("Invalid credentials"))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": ""})
+	token, err := h.service.GenerateToken(usr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, exceptions.InternalServerError("error while authenticating"))
+		return
+	}
+
+	session := sessions.Default(c)
+	session.Set("token", token)
+	err = session.Save()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, exceptions.InternalServerError("error while authenticating"))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
