@@ -20,11 +20,17 @@ func main() {
 	defer client.Close()
 	defer logger.Sync()
 
+	logger.Info("logger init")
+
 	bq := cd.NewKafkaDepositProducer(logger)
 	defer bq.Producer.Close()
 
+	logger.Info("producer init")
+
 	as := ca.NewAuthService(client, "some-secret", logger)
 	ds := cd.NewDepositService(client, logger, bq)
+
+	logger.Info("services init")
 
 	r := gin.Default()
 	store := cookie.NewStore([]byte("secret"))

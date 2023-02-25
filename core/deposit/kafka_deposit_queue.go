@@ -14,14 +14,18 @@ type KafkaDepositQueue struct {
 	logger *zap.Logger
 
 	Producer sarama.SyncProducer
-	Consumer sarama.Consumer
+	Consumer sarama.ConsumerGroup
 }
 
 func NewKafkaDepositConsumer(logger *zap.Logger) *KafkaDepositQueue {
 	config := sarama.NewConfig()
 	config.Consumer.Return.Errors = true
+	config.Consumer.IsolationLevel = sarama.ReadCommitted
+	config.Consumer.Offsets.AutoCommit.Enable = false
+	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	conn, err := sarama.NewConsumer([]string{"localhost:29092"}, config)
+	conn, err := sarama.NewConsumerGroup([]string{"localhost:29092"}, "go_consumer", config)
 	if err != nil {
 		logger.Fatal("failed opening connection to kafka", zap.Error(err))
 	}
