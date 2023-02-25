@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"web/pkg/auth"
-	"web/pkg/common/utils"
-	"web/pkg/deposit"
+	"bin/web/pkg/auth"
+	"bin/web/pkg/deposit"
+	"lib/common/utils"
 )
 
 func main() {

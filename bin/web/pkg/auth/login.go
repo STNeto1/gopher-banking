@@ -1,24 +1,22 @@
 package auth
 
 import (
-	"core/auth"
 	"errors"
+	"lib/common/exceptions"
 	"net/http"
-	"web/pkg/common/exceptions"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
-type RegisterRequestBody struct {
-	Name     string `json:"name" binding:"required,min=3,max=50"`
+type LoginRequestBody struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
-func (h handler) Register(c *gin.Context) {
-	body := RegisterRequestBody{}
+func (h handler) Login(c *gin.Context) {
+	body := LoginRequestBody{}
 
 	// getting request's body
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -34,15 +32,12 @@ func (h handler) Register(c *gin.Context) {
 		}
 	}
 
-	usr, err := h.service.RegisterUser(c.Request.Context(), auth.RegisterUserPayload{
-		Name:     body.Name,
-		Email:    body.Email,
-		Password: body.Password,
-	})
+	usr, err := h.service.LoginUser(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, exceptions.BadRequest("error creating user"))
+		c.JSON(http.StatusBadRequest, exceptions.BadRequest("Invalid credentials"))
 		return
 	}
+
 	token, err := h.service.GenerateToken(usr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, exceptions.InternalServerError("error while authenticating"))

@@ -3,8 +3,8 @@ package deposit
 import (
 	"core/deposit"
 	"errors"
+	"lib/common/exceptions"
 	"net/http"
-	"web/pkg/common/exceptions"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
