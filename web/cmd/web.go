@@ -20,8 +20,8 @@ func main() {
 	defer client.Close()
 	defer logger.Sync()
 
-	bq := cd.NewKafkaDepositQueue(logger)
-	defer bq.Conn.Close()
+	bq := cd.NewKafkaDepositProducer(logger)
+	defer bq.Producer.Close()
 
 	as := ca.NewAuthService(client, "some-secret", logger)
 	ds := cd.NewDepositService(client, logger, bq)
