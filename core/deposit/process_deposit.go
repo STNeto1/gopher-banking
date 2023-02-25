@@ -23,6 +23,18 @@ func (s *DepositService) ProcessDeposit(ctx context.Context, payload AddDepositM
 		return utils.Rollback(tx, errors.New("failed to fetch deposit"))
 	}
 
+	if dbDeposit.Status != deposit.StatusPending {
+		s.logger.Error("deposit already processed", zap.Error(err))
+
+		err = tx.Commit()
+		if err != nil {
+			s.logger.Error("failed to commit transaction", zap.Error(err))
+			return errors.New("failed to commit transaction")
+		}
+
+		return nil
+	}
+
 	randNumber := rand.Float64() * 100
 	if randNumber < offset {
 		// "fraud" detected

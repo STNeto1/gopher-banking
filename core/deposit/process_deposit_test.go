@@ -20,7 +20,6 @@ func createDeposit(client *ent.Client, user *ent.User, amount float64) (*ent.Dep
 		SetAmount(amount).
 		SetStatus(entd.StatusPending).
 		Save(context.Background())
-
 }
 
 func TestProcessDepositNotFound(t *testing.T) {
@@ -32,6 +31,30 @@ func TestProcessDepositNotFound(t *testing.T) {
 		DepositID: uuid.New(),
 	}, 0.0)
 	assert.Error(t, err)
+}
+
+func TestProcessDepositAlreadyProcessed(t *testing.T) {
+	s, client, l := CreateDepositService(t)
+	defer client.Close()
+	defer l.Sync()
+
+	usr, err := generateAnyValidUser(client)
+	assert.NotNil(t, usr)
+	assert.Nil(t, err)
+
+	dep, err := client.Deposit.
+		Create().
+		SetUser(usr).
+		SetAmount(10).
+		SetStatus(entd.StatusCompleted).
+		Save(context.Background())
+	assert.NotNil(t, dep)
+	assert.Nil(t, err)
+
+	err = s.ProcessDeposit(context.Background(), deposit.AddDepositMessagePayload{
+		DepositID: dep.ID,
+	}, 100.0)
+	assert.NoError(t, err)
 }
 
 func TestProcessDepositFraudDetected(t *testing.T) {
