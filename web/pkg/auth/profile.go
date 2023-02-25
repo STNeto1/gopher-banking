@@ -11,7 +11,7 @@ import (
 func (h handler) Profile(c *gin.Context) {
 	session := sessions.Default(c)
 
-	usr, err := h.ExtractUser(session.Get("token"))
+	usr, err := h.service.ExtractUser(session.Get("token"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, exceptions.Unauthorized("unauthorized"))
 		return

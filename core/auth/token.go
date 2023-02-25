@@ -1,10 +1,14 @@
 package auth
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"models/ent"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -39,4 +43,28 @@ func (s *AuthService) ValidateToken(token string) (*jwt.StandardClaims, error) {
 	}
 
 	return t.Claims.(*jwt.StandardClaims), nil
+}
+
+func (s *AuthService) ExtractUser(raw interface{}) (*ent.User, error) {
+	valStr := fmt.Sprint(raw)
+	if valStr == "" {
+		return nil, errors.New("")
+	}
+
+	claims, err := s.ValidateToken(valStr)
+	if err != nil {
+		return nil, errors.New("")
+	}
+
+	parsedUserId, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return nil, errors.New("")
+	}
+
+	usr, err := s.GetUserFromId(context.Background(), parsedUserId)
+	if err != nil {
+		return nil, errors.New("")
+	}
+
+	return usr, nil
 }

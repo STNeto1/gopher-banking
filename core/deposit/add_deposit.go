@@ -46,7 +46,6 @@ func (s *DepositService) AddDeposit(ctx context.Context, user *ent.User, payload
 		s.logger.Error("failed to serialize", zap.Error(err))
 		return utils.Rollback(tx, errors.New("failed to serialize"))
 	}
-	s.logger.Info(string(data))
 
 	err = s.queue.AddMessageToQueue(ctx, data)
 	if err != nil {

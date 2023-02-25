@@ -2,6 +2,7 @@ package main
 
 import (
 	ca "core/auth"
+	cd "core/deposit"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -10,6 +11,7 @@ import (
 
 	"web/pkg/auth"
 	"web/pkg/common/utils"
+	"web/pkg/deposit"
 )
 
 func main() {
@@ -18,13 +20,18 @@ func main() {
 	defer client.Close()
 	defer logger.Sync()
 
+	bq := cd.NewKafkaDepositQueue(logger)
+	defer bq.Conn.Close()
+
 	as := ca.NewAuthService(client, "some-secret", logger)
+	ds := cd.NewDepositService(client, logger, bq)
 
 	r := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("bank.sessh", store))
 
 	auth.RegisterRoutes(r, as)
+	deposit.RegisterRoutes(r, as, ds)
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }
