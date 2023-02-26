@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	cd "core/deposit"
+	"core/deposit"
+	"core/transference"
 	"lib/common/utils"
 	"log"
 	"os"
@@ -22,18 +23,23 @@ func main() {
 	defer client.Close()
 	defer logger.Sync()
 
-	bq := cd.NewKafkaDepositConsumer(logger)
-	defer bq.Consumer.Close()
+	depositConsumer := deposit.NewKafkaDepositConsumer(logger)
+	defer depositConsumer.Consumer.Close()
 
-	ds := cd.NewDepositService(client, logger, bq)
+	transferenceConsumer := transference.NewKafkaTransferenceConsumer(logger)
+	defer transferenceConsumer.Consumer.Close()
+
+	deposit_service := deposit.NewDepositService(client, logger, depositConsumer)
+	transference_service := transference.NewTransferService(client, logger, transferenceConsumer)
 
 	consumer := Consumer{
-		ready:   make(chan bool),
-		logger:  logger,
-		service: ds,
+		ready:               make(chan bool),
+		logger:              logger,
+		depositService:      deposit_service,
+		transferenceService: transference_service,
 	}
 
-	if err := bq.Consumer.Consume(context.Background(), []string{cd.ADD_BALANCE_TOPIC}, &consumer); err != nil {
+	if err := depositConsumer.Consumer.Consume(context.Background(), []string{deposit.ADD_BALANCE_TOPIC, transference.PROCESS_TRANSFERENCE_TOPIC}, &consumer); err != nil {
 		logger.Fatal("failed to consume partition", zap.Error(err))
 	}
 
@@ -48,7 +54,7 @@ func main() {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
-			if err := bq.Consumer.Consume(ctx, []string{cd.ADD_BALANCE_TOPIC}, &consumer); err != nil {
+			if err := depositConsumer.Consumer.Consume(ctx, []string{deposit.ADD_BALANCE_TOPIC}, &consumer); err != nil {
 				log.Panicf("Error from consumer: %v", err)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
@@ -78,7 +84,7 @@ func main() {
 			log.Println("terminating: via signal")
 			keepRunning = false
 		case <-sigusr1:
-			toggleConsumptionFlow(bq.Consumer, &consumptionIsPaused)
+			toggleConsumptionFlow(depositConsumer.Consumer, &consumptionIsPaused)
 		}
 	}
 	cancel()
@@ -88,9 +94,10 @@ func main() {
 
 // Consumer represents a Sarama consumer group consumer
 type Consumer struct {
-	logger  *zap.Logger
-	ready   chan bool
-	service *cd.DepositService
+	logger              *zap.Logger
+	ready               chan bool
+	depositService      *deposit.DepositService
+	transferenceService *transference.TransferService
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
@@ -117,19 +124,40 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			// avoid race condition :)
 			time.Sleep(time.Second * 2)
 
-			body := new(cd.AddDepositMessagePayload)
-			if err := borsh.Deserialize(body, message.Value); err != nil {
-				consumer.logger.Error("error deserializing payload", zap.Error(err))
-				continue
+			if message.Topic == deposit.ADD_BALANCE_TOPIC {
+				body := new(deposit.AddDepositMessagePayload)
+				if err := borsh.Deserialize(body, message.Value); err != nil {
+					consumer.logger.Error("error deserializing payload", zap.Error(err))
+					continue
+				}
+
+				consumer.logger.Sugar().Infof("processing deposit: %s", body.DepositID.String())
+				if err := consumer.depositService.ProcessDeposit(context.Background(), *body, 5); err != nil {
+					consumer.logger.Error("error processing deposit", zap.Error(err))
+					continue
+				}
+
+				session.MarkMessage(message, "")
+
 			}
 
-			consumer.logger.Sugar().Infof("processing deposit: %s", body.DepositID.String())
-			if err := consumer.service.ProcessDeposit(context.Background(), *body, 5); err != nil {
-				consumer.logger.Error("error processing deposit", zap.Error(err))
-				continue
-			}
+			if message.Topic == transference.PROCESS_TRANSFERENCE_TOPIC {
 
-			session.MarkMessage(message, "")
+				body := new(deposit.AddDepositMessagePayload)
+				if err := borsh.Deserialize(body, message.Value); err != nil {
+					consumer.logger.Error("error deserializing payload", zap.Error(err))
+					continue
+				}
+
+				consumer.logger.Sugar().Infof("processing deposit: %s", body.DepositID.String())
+				if err := consumer.depositService.ProcessDeposit(context.Background(), *body, 5); err != nil {
+					consumer.logger.Error("error processing deposit", zap.Error(err))
+					continue
+				}
+
+				session.MarkMessage(message, "")
+
+			}
 
 		// Should return when `session.Context()` is done.
 		// If not, will raise `ErrRebalanceInProgress` or `read tcp <ip>:<port>: i/o timeout` when kafka rebalance. see:

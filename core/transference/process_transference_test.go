@@ -102,12 +102,12 @@ func TestProcessDepositWithSuccess(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = s.ProcessTransfer(context.Background(), transference.TransferenceToProcessPayload{
-		TransferID: tr.ID}, 100.0)
+		TransferID: tr.ID}, 0.0)
 	assert.NoError(t, err)
 
 	updatedToUsr, err := client.User.Query().Where(user.ID(to_usr.ID)).Only(context.Background())
 	assert.NotNil(t, updatedToUsr)
 	assert.Nil(t, err)
 
-	assert.Equal(t, updatedToUsr.Balance, 20)
+	assert.Equal(t, updatedToUsr.Balance, float64(20))
 }
