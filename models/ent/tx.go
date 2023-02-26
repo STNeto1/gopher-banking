@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Deposit is the client for interacting with the Deposit builders.
 	Deposit *DepositClient
+	// Transference is the client for interacting with the Transference builders.
+	Transference *TransferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -148,6 +150,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Deposit = NewDepositClient(tx.config)
+	tx.Transference = NewTransferenceClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

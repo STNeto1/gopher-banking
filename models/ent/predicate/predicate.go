@@ -9,5 +9,8 @@ import (
 // Deposit is the predicate function for deposit builders.
 type Deposit func(*sql.Selector)
 
+// Transference is the predicate function for transference builders.
+type Transference func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

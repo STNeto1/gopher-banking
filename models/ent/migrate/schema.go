@@ -30,6 +30,36 @@ var (
 			},
 		},
 	}
+	// TransferencesColumns holds the columns for the "transferences" table.
+	TransferencesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "amount", Type: field.TypeFloat64},
+		{Name: "message", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "completed", "denied"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_from_transfers", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_to_transfers", Type: field.TypeUUID, Nullable: true},
+	}
+	// TransferencesTable holds the schema information for the "transferences" table.
+	TransferencesTable = &schema.Table{
+		Name:       "transferences",
+		Columns:    TransferencesColumns,
+		PrimaryKey: []*schema.Column{TransferencesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "transferences_users_from_transfers",
+				Columns:    []*schema.Column{TransferencesColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "transferences_users_to_transfers",
+				Columns:    []*schema.Column{TransferencesColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -48,10 +78,13 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		DepositsTable,
+		TransferencesTable,
 		UsersTable,
 	}
 )
 
 func init() {
 	DepositsTable.ForeignKeys[0].RefTable = UsersTable
+	TransferencesTable.ForeignKeys[0].RefTable = UsersTable
+	TransferencesTable.ForeignKeys[1].RefTable = UsersTable
 }

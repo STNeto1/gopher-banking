@@ -5,6 +5,7 @@ package ent
 import (
 	"models/ent/deposit"
 	"models/ent/schema"
+	"models/ent/transference"
 	"models/ent/user"
 	"time"
 
@@ -25,6 +26,16 @@ func init() {
 	depositDescID := depositFields[0].Descriptor()
 	// deposit.DefaultID holds the default value on creation for the id field.
 	deposit.DefaultID = depositDescID.Default.(func() uuid.UUID)
+	transferenceFields := schema.Transference{}.Fields()
+	_ = transferenceFields
+	// transferenceDescCreatedAt is the schema descriptor for created_at field.
+	transferenceDescCreatedAt := transferenceFields[4].Descriptor()
+	// transference.DefaultCreatedAt holds the default value on creation for the created_at field.
+	transference.DefaultCreatedAt = transferenceDescCreatedAt.Default.(func() time.Time)
+	// transferenceDescID is the schema descriptor for id field.
+	transferenceDescID := transferenceFields[0].Descriptor()
+	// transference.DefaultID holds the default value on creation for the id field.
+	transference.DefaultID = transferenceDescID.Default.(func() uuid.UUID)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.

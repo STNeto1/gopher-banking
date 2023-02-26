@@ -11,6 +11,7 @@ import (
 	"models/ent/migrate"
 
 	"models/ent/deposit"
+	"models/ent/transference"
 	"models/ent/user"
 
 	"entgo.io/ent/dialect"
@@ -26,6 +27,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Deposit is the client for interacting with the Deposit builders.
 	Deposit *DepositClient
+	// Transference is the client for interacting with the Transference builders.
+	Transference *TransferenceClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -42,6 +45,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Deposit = NewDepositClient(c.config)
+	c.Transference = NewTransferenceClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -74,10 +78,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Deposit: NewDepositClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Deposit:      NewDepositClient(cfg),
+		Transference: NewTransferenceClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
@@ -95,10 +100,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Deposit: NewDepositClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Deposit:      NewDepositClient(cfg),
+		Transference: NewTransferenceClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
@@ -128,6 +134,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Deposit.Use(hooks...)
+	c.Transference.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -135,6 +142,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Deposit.Intercept(interceptors...)
+	c.Transference.Intercept(interceptors...)
 	c.User.Intercept(interceptors...)
 }
 
@@ -143,6 +151,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *DepositMutation:
 		return c.Deposit.mutate(ctx, m)
+	case *TransferenceMutation:
+		return c.Transference.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -284,6 +294,156 @@ func (c *DepositClient) mutate(ctx context.Context, m *DepositMutation) (Value, 
 	}
 }
 
+// TransferenceClient is a client for the Transference schema.
+type TransferenceClient struct {
+	config
+}
+
+// NewTransferenceClient returns a client for the Transference from the given config.
+func NewTransferenceClient(c config) *TransferenceClient {
+	return &TransferenceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `transference.Hooks(f(g(h())))`.
+func (c *TransferenceClient) Use(hooks ...Hook) {
+	c.hooks.Transference = append(c.hooks.Transference, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `transference.Intercept(f(g(h())))`.
+func (c *TransferenceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Transference = append(c.inters.Transference, interceptors...)
+}
+
+// Create returns a builder for creating a Transference entity.
+func (c *TransferenceClient) Create() *TransferenceCreate {
+	mutation := newTransferenceMutation(c.config, OpCreate)
+	return &TransferenceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Transference entities.
+func (c *TransferenceClient) CreateBulk(builders ...*TransferenceCreate) *TransferenceCreateBulk {
+	return &TransferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Transference.
+func (c *TransferenceClient) Update() *TransferenceUpdate {
+	mutation := newTransferenceMutation(c.config, OpUpdate)
+	return &TransferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TransferenceClient) UpdateOne(t *Transference) *TransferenceUpdateOne {
+	mutation := newTransferenceMutation(c.config, OpUpdateOne, withTransference(t))
+	return &TransferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TransferenceClient) UpdateOneID(id uuid.UUID) *TransferenceUpdateOne {
+	mutation := newTransferenceMutation(c.config, OpUpdateOne, withTransferenceID(id))
+	return &TransferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Transference.
+func (c *TransferenceClient) Delete() *TransferenceDelete {
+	mutation := newTransferenceMutation(c.config, OpDelete)
+	return &TransferenceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TransferenceClient) DeleteOne(t *Transference) *TransferenceDeleteOne {
+	return c.DeleteOneID(t.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TransferenceClient) DeleteOneID(id uuid.UUID) *TransferenceDeleteOne {
+	builder := c.Delete().Where(transference.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TransferenceDeleteOne{builder}
+}
+
+// Query returns a query builder for Transference.
+func (c *TransferenceClient) Query() *TransferenceQuery {
+	return &TransferenceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTransference},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Transference entity by its id.
+func (c *TransferenceClient) Get(ctx context.Context, id uuid.UUID) (*Transference, error) {
+	return c.Query().Where(transference.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TransferenceClient) GetX(ctx context.Context, id uuid.UUID) *Transference {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryFromUser queries the from_user edge of a Transference.
+func (c *TransferenceClient) QueryFromUser(t *Transference) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(transference.Table, transference.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, transference.FromUserTable, transference.FromUserColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryToUser queries the to_user edge of a Transference.
+func (c *TransferenceClient) QueryToUser(t *Transference) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := t.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(transference.Table, transference.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, transference.ToUserTable, transference.ToUserColumn),
+		)
+		fromV = sqlgraph.Neighbors(t.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TransferenceClient) Hooks() []Hook {
+	return c.hooks.Transference
+}
+
+// Interceptors returns the client interceptors.
+func (c *TransferenceClient) Interceptors() []Interceptor {
+	return c.inters.Transference
+}
+
+func (c *TransferenceClient) mutate(ctx context.Context, m *TransferenceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TransferenceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TransferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TransferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TransferenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Transference mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -386,6 +546,38 @@ func (c *UserClient) QueryDeposits(u *User) *DepositQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(deposit.Table, deposit.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.DepositsTable, user.DepositsColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFromTransfers queries the from_transfers edge of a User.
+func (c *UserClient) QueryFromTransfers(u *User) *TransferenceQuery {
+	query := (&TransferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(transference.Table, transference.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.FromTransfersTable, user.FromTransfersColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryToTransfers queries the to_transfers edge of a User.
+func (c *UserClient) QueryToTransfers(u *User) *TransferenceQuery {
+	query := (&TransferenceClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(transference.Table, transference.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ToTransfersTable, user.ToTransfersColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil

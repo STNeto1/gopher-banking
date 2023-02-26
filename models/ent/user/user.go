@@ -25,6 +25,10 @@ const (
 	FieldCreatedAt = "created_at"
 	// EdgeDeposits holds the string denoting the deposits edge name in mutations.
 	EdgeDeposits = "deposits"
+	// EdgeFromTransfers holds the string denoting the from_transfers edge name in mutations.
+	EdgeFromTransfers = "from_transfers"
+	// EdgeToTransfers holds the string denoting the to_transfers edge name in mutations.
+	EdgeToTransfers = "to_transfers"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// DepositsTable is the table that holds the deposits relation/edge.
@@ -34,6 +38,20 @@ const (
 	DepositsInverseTable = "deposits"
 	// DepositsColumn is the table column denoting the deposits relation/edge.
 	DepositsColumn = "user_deposits"
+	// FromTransfersTable is the table that holds the from_transfers relation/edge.
+	FromTransfersTable = "transferences"
+	// FromTransfersInverseTable is the table name for the Transference entity.
+	// It exists in this package in order to avoid circular dependency with the "transference" package.
+	FromTransfersInverseTable = "transferences"
+	// FromTransfersColumn is the table column denoting the from_transfers relation/edge.
+	FromTransfersColumn = "user_from_transfers"
+	// ToTransfersTable is the table that holds the to_transfers relation/edge.
+	ToTransfersTable = "transferences"
+	// ToTransfersInverseTable is the table name for the Transference entity.
+	// It exists in this package in order to avoid circular dependency with the "transference" package.
+	ToTransfersInverseTable = "transferences"
+	// ToTransfersColumn is the table column denoting the to_transfers relation/edge.
+	ToTransfersColumn = "user_to_transfers"
 )
 
 // Columns holds all SQL columns for user fields.

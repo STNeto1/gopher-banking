@@ -30,5 +30,7 @@ func (User) Fields() []ent.Field {
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("deposits", Deposit.Type),
+		edge.To("from_transfers", Transference.Type),
+		edge.To("to_transfers", Transference.Type),
 	}
 }

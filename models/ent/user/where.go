@@ -383,6 +383,60 @@ func HasDepositsWith(preds ...predicate.Deposit) predicate.User {
 	})
 }
 
+// HasFromTransfers applies the HasEdge predicate on the "from_transfers" edge.
+func HasFromTransfers() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FromTransfersTable, FromTransfersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFromTransfersWith applies the HasEdge predicate on the "from_transfers" edge with a given conditions (other predicates).
+func HasFromTransfersWith(preds ...predicate.Transference) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(FromTransfersInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FromTransfersTable, FromTransfersColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasToTransfers applies the HasEdge predicate on the "to_transfers" edge.
+func HasToTransfers() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ToTransfersTable, ToTransfersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasToTransfersWith applies the HasEdge predicate on the "to_transfers" edge with a given conditions (other predicates).
+func HasToTransfersWith(preds ...predicate.Transference) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ToTransfersInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ToTransfersTable, ToTransfersColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.User) predicate.User {
 	return predicate.User(func(s *sql.Selector) {

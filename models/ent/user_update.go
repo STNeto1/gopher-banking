@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"models/ent/deposit"
 	"models/ent/predicate"
+	"models/ent/transference"
 	"models/ent/user"
 	"time"
 
@@ -90,6 +91,36 @@ func (uu *UserUpdate) AddDeposits(d ...*Deposit) *UserUpdate {
 	return uu.AddDepositIDs(ids...)
 }
 
+// AddFromTransferIDs adds the "from_transfers" edge to the Transference entity by IDs.
+func (uu *UserUpdate) AddFromTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddFromTransferIDs(ids...)
+	return uu
+}
+
+// AddFromTransfers adds the "from_transfers" edges to the Transference entity.
+func (uu *UserUpdate) AddFromTransfers(t ...*Transference) *UserUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uu.AddFromTransferIDs(ids...)
+}
+
+// AddToTransferIDs adds the "to_transfers" edge to the Transference entity by IDs.
+func (uu *UserUpdate) AddToTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddToTransferIDs(ids...)
+	return uu
+}
+
+// AddToTransfers adds the "to_transfers" edges to the Transference entity.
+func (uu *UserUpdate) AddToTransfers(t ...*Transference) *UserUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uu.AddToTransferIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
@@ -114,6 +145,48 @@ func (uu *UserUpdate) RemoveDeposits(d ...*Deposit) *UserUpdate {
 		ids[i] = d[i].ID
 	}
 	return uu.RemoveDepositIDs(ids...)
+}
+
+// ClearFromTransfers clears all "from_transfers" edges to the Transference entity.
+func (uu *UserUpdate) ClearFromTransfers() *UserUpdate {
+	uu.mutation.ClearFromTransfers()
+	return uu
+}
+
+// RemoveFromTransferIDs removes the "from_transfers" edge to Transference entities by IDs.
+func (uu *UserUpdate) RemoveFromTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveFromTransferIDs(ids...)
+	return uu
+}
+
+// RemoveFromTransfers removes "from_transfers" edges to Transference entities.
+func (uu *UserUpdate) RemoveFromTransfers(t ...*Transference) *UserUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uu.RemoveFromTransferIDs(ids...)
+}
+
+// ClearToTransfers clears all "to_transfers" edges to the Transference entity.
+func (uu *UserUpdate) ClearToTransfers() *UserUpdate {
+	uu.mutation.ClearToTransfers()
+	return uu
+}
+
+// RemoveToTransferIDs removes the "to_transfers" edge to Transference entities by IDs.
+func (uu *UserUpdate) RemoveToTransferIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveToTransferIDs(ids...)
+	return uu
+}
+
+// RemoveToTransfers removes "to_transfers" edges to Transference entities.
+func (uu *UserUpdate) RemoveToTransfers(t ...*Transference) *UserUpdate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uu.RemoveToTransferIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -224,6 +297,114 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.FromTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedFromTransfersIDs(); len(nodes) > 0 && !uu.mutation.FromTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.FromTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uu.mutation.ToTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedToTransfersIDs(); len(nodes) > 0 && !uu.mutation.ToTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.ToTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -304,6 +485,36 @@ func (uuo *UserUpdateOne) AddDeposits(d ...*Deposit) *UserUpdateOne {
 	return uuo.AddDepositIDs(ids...)
 }
 
+// AddFromTransferIDs adds the "from_transfers" edge to the Transference entity by IDs.
+func (uuo *UserUpdateOne) AddFromTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddFromTransferIDs(ids...)
+	return uuo
+}
+
+// AddFromTransfers adds the "from_transfers" edges to the Transference entity.
+func (uuo *UserUpdateOne) AddFromTransfers(t ...*Transference) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uuo.AddFromTransferIDs(ids...)
+}
+
+// AddToTransferIDs adds the "to_transfers" edge to the Transference entity by IDs.
+func (uuo *UserUpdateOne) AddToTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddToTransferIDs(ids...)
+	return uuo
+}
+
+// AddToTransfers adds the "to_transfers" edges to the Transference entity.
+func (uuo *UserUpdateOne) AddToTransfers(t ...*Transference) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uuo.AddToTransferIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
@@ -328,6 +539,48 @@ func (uuo *UserUpdateOne) RemoveDeposits(d ...*Deposit) *UserUpdateOne {
 		ids[i] = d[i].ID
 	}
 	return uuo.RemoveDepositIDs(ids...)
+}
+
+// ClearFromTransfers clears all "from_transfers" edges to the Transference entity.
+func (uuo *UserUpdateOne) ClearFromTransfers() *UserUpdateOne {
+	uuo.mutation.ClearFromTransfers()
+	return uuo
+}
+
+// RemoveFromTransferIDs removes the "from_transfers" edge to Transference entities by IDs.
+func (uuo *UserUpdateOne) RemoveFromTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveFromTransferIDs(ids...)
+	return uuo
+}
+
+// RemoveFromTransfers removes "from_transfers" edges to Transference entities.
+func (uuo *UserUpdateOne) RemoveFromTransfers(t ...*Transference) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uuo.RemoveFromTransferIDs(ids...)
+}
+
+// ClearToTransfers clears all "to_transfers" edges to the Transference entity.
+func (uuo *UserUpdateOne) ClearToTransfers() *UserUpdateOne {
+	uuo.mutation.ClearToTransfers()
+	return uuo
+}
+
+// RemoveToTransferIDs removes the "to_transfers" edge to Transference entities by IDs.
+func (uuo *UserUpdateOne) RemoveToTransferIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveToTransferIDs(ids...)
+	return uuo
+}
+
+// RemoveToTransfers removes "to_transfers" edges to Transference entities.
+func (uuo *UserUpdateOne) RemoveToTransfers(t ...*Transference) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uuo.RemoveToTransferIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -460,6 +713,114 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUUID,
 					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.FromTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedFromTransfersIDs(); len(nodes) > 0 && !uuo.mutation.FromTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.FromTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.ToTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedToTransfersIDs(); len(nodes) > 0 && !uuo.mutation.ToTransfersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.ToTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
 				},
 			},
 		}

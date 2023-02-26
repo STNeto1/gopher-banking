@@ -9,6 +9,7 @@ import (
 	"math"
 	"models/ent/deposit"
 	"models/ent/predicate"
+	"models/ent/transference"
 	"models/ent/user"
 
 	"entgo.io/ent/dialect/sql"
@@ -20,11 +21,13 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	ctx          *QueryContext
-	order        []OrderFunc
-	inters       []Interceptor
-	predicates   []predicate.User
-	withDeposits *DepositQuery
+	ctx               *QueryContext
+	order             []OrderFunc
+	inters            []Interceptor
+	predicates        []predicate.User
+	withDeposits      *DepositQuery
+	withFromTransfers *TransferenceQuery
+	withToTransfers   *TransferenceQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +79,50 @@ func (uq *UserQuery) QueryDeposits() *DepositQuery {
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(deposit.Table, deposit.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.DepositsTable, user.DepositsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFromTransfers chains the current query on the "from_transfers" edge.
+func (uq *UserQuery) QueryFromTransfers() *TransferenceQuery {
+	query := (&TransferenceClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(transference.Table, transference.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.FromTransfersTable, user.FromTransfersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryToTransfers chains the current query on the "to_transfers" edge.
+func (uq *UserQuery) QueryToTransfers() *TransferenceQuery {
+	query := (&TransferenceClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(transference.Table, transference.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ToTransfersTable, user.ToTransfersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +317,14 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:       uq.config,
-		ctx:          uq.ctx.Clone(),
-		order:        append([]OrderFunc{}, uq.order...),
-		inters:       append([]Interceptor{}, uq.inters...),
-		predicates:   append([]predicate.User{}, uq.predicates...),
-		withDeposits: uq.withDeposits.Clone(),
+		config:            uq.config,
+		ctx:               uq.ctx.Clone(),
+		order:             append([]OrderFunc{}, uq.order...),
+		inters:            append([]Interceptor{}, uq.inters...),
+		predicates:        append([]predicate.User{}, uq.predicates...),
+		withDeposits:      uq.withDeposits.Clone(),
+		withFromTransfers: uq.withFromTransfers.Clone(),
+		withToTransfers:   uq.withToTransfers.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -290,6 +339,28 @@ func (uq *UserQuery) WithDeposits(opts ...func(*DepositQuery)) *UserQuery {
 		opt(query)
 	}
 	uq.withDeposits = query
+	return uq
+}
+
+// WithFromTransfers tells the query-builder to eager-load the nodes that are connected to
+// the "from_transfers" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithFromTransfers(opts ...func(*TransferenceQuery)) *UserQuery {
+	query := (&TransferenceClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withFromTransfers = query
+	return uq
+}
+
+// WithToTransfers tells the query-builder to eager-load the nodes that are connected to
+// the "to_transfers" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithToTransfers(opts ...func(*TransferenceQuery)) *UserQuery {
+	query := (&TransferenceClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withToTransfers = query
 	return uq
 }
 
@@ -371,8 +442,10 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			uq.withDeposits != nil,
+			uq.withFromTransfers != nil,
+			uq.withToTransfers != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -397,6 +470,20 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 		if err := uq.loadDeposits(ctx, query, nodes,
 			func(n *User) { n.Edges.Deposits = []*Deposit{} },
 			func(n *User, e *Deposit) { n.Edges.Deposits = append(n.Edges.Deposits, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withFromTransfers; query != nil {
+		if err := uq.loadFromTransfers(ctx, query, nodes,
+			func(n *User) { n.Edges.FromTransfers = []*Transference{} },
+			func(n *User, e *Transference) { n.Edges.FromTransfers = append(n.Edges.FromTransfers, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := uq.withToTransfers; query != nil {
+		if err := uq.loadToTransfers(ctx, query, nodes,
+			func(n *User) { n.Edges.ToTransfers = []*Transference{} },
+			func(n *User, e *Transference) { n.Edges.ToTransfers = append(n.Edges.ToTransfers, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -429,6 +516,68 @@ func (uq *UserQuery) loadDeposits(ctx context.Context, query *DepositQuery, node
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "user_deposits" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadFromTransfers(ctx context.Context, query *TransferenceQuery, nodes []*User, init func(*User), assign func(*User, *Transference)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Transference(func(s *sql.Selector) {
+		s.Where(sql.InValues(user.FromTransfersColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_from_transfers
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_from_transfers" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_from_transfers" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (uq *UserQuery) loadToTransfers(ctx context.Context, query *TransferenceQuery, nodes []*User, init func(*User), assign func(*User, *Transference)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Transference(func(s *sql.Selector) {
+		s.Where(sql.InValues(user.ToTransfersColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_to_transfers
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_to_transfers" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_to_transfers" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

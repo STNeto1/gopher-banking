@@ -36,9 +36,13 @@ type User struct {
 type UserEdges struct {
 	// Deposits holds the value of the deposits edge.
 	Deposits []*Deposit `json:"deposits,omitempty"`
+	// FromTransfers holds the value of the from_transfers edge.
+	FromTransfers []*Transference `json:"from_transfers,omitempty"`
+	// ToTransfers holds the value of the to_transfers edge.
+	ToTransfers []*Transference `json:"to_transfers,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 }
 
 // DepositsOrErr returns the Deposits value or an error if the edge
@@ -48,6 +52,24 @@ func (e UserEdges) DepositsOrErr() ([]*Deposit, error) {
 		return e.Deposits, nil
 	}
 	return nil, &NotLoadedError{edge: "deposits"}
+}
+
+// FromTransfersOrErr returns the FromTransfers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FromTransfersOrErr() ([]*Transference, error) {
+	if e.loadedTypes[1] {
+		return e.FromTransfers, nil
+	}
+	return nil, &NotLoadedError{edge: "from_transfers"}
+}
+
+// ToTransfersOrErr returns the ToTransfers value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) ToTransfersOrErr() ([]*Transference, error) {
+	if e.loadedTypes[2] {
+		return e.ToTransfers, nil
+	}
+	return nil, &NotLoadedError{edge: "to_transfers"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -122,6 +144,16 @@ func (u *User) assignValues(columns []string, values []any) error {
 // QueryDeposits queries the "deposits" edge of the User entity.
 func (u *User) QueryDeposits() *DepositQuery {
 	return NewUserClient(u.config).QueryDeposits(u)
+}
+
+// QueryFromTransfers queries the "from_transfers" edge of the User entity.
+func (u *User) QueryFromTransfers() *TransferenceQuery {
+	return NewUserClient(u.config).QueryFromTransfers(u)
+}
+
+// QueryToTransfers queries the "to_transfers" edge of the User entity.
+func (u *User) QueryToTransfers() *TransferenceQuery {
+	return NewUserClient(u.config).QueryToTransfers(u)
 }
 
 // Update returns a builder for updating this User.

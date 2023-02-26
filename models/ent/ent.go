@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"models/ent/deposit"
+	"models/ent/transference"
 	"models/ent/user"
 	"reflect"
 
@@ -40,8 +41,9 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		deposit.Table: deposit.ValidColumn,
-		user.Table:    user.ValidColumn,
+		deposit.Table:      deposit.ValidColumn,
+		transference.Table: transference.ValidColumn,
+		user.Table:         user.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

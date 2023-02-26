@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"models/ent/deposit"
+	"models/ent/transference"
 	"models/ent/user"
 	"time"
 
@@ -87,6 +88,36 @@ func (uc *UserCreate) AddDeposits(d ...*Deposit) *UserCreate {
 		ids[i] = d[i].ID
 	}
 	return uc.AddDepositIDs(ids...)
+}
+
+// AddFromTransferIDs adds the "from_transfers" edge to the Transference entity by IDs.
+func (uc *UserCreate) AddFromTransferIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddFromTransferIDs(ids...)
+	return uc
+}
+
+// AddFromTransfers adds the "from_transfers" edges to the Transference entity.
+func (uc *UserCreate) AddFromTransfers(t ...*Transference) *UserCreate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uc.AddFromTransferIDs(ids...)
+}
+
+// AddToTransferIDs adds the "to_transfers" edge to the Transference entity by IDs.
+func (uc *UserCreate) AddToTransferIDs(ids ...uuid.UUID) *UserCreate {
+	uc.mutation.AddToTransferIDs(ids...)
+	return uc
+}
+
+// AddToTransfers adds the "to_transfers" edges to the Transference entity.
+func (uc *UserCreate) AddToTransfers(t ...*Transference) *UserCreate {
+	ids := make([]uuid.UUID, len(t))
+	for i := range t {
+		ids[i] = t[i].ID
+	}
+	return uc.AddToTransferIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -217,6 +248,44 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUUID,
 					Column: deposit.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.FromTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FromTransfersTable,
+			Columns: []string{user.FromTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.ToTransfersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ToTransfersTable,
+			Columns: []string{user.ToTransfersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUUID,
+					Column: transference.FieldID,
 				},
 			},
 		}
