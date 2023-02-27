@@ -3,6 +3,7 @@ package main
 import (
 	ca "core/auth"
 	cd "core/deposit"
+	ct "core/transference"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -11,6 +12,7 @@ import (
 
 	"bin/web/pkg/auth"
 	"bin/web/pkg/deposit"
+	"bin/web/pkg/transference"
 	"lib/common/utils"
 )
 
@@ -22,15 +24,15 @@ func main() {
 
 	logger.Info("logger init")
 
-	bq := cd.NewKafkaDepositProducer(logger)
-	defer bq.Producer.Close()
+	depositQueue := cd.NewKafkaDepositProducer(logger)
+	defer depositQueue.Producer.Close()
 
-	logger.Info("producer init")
+	transferenceQueue := ct.NewKafkaTransferenceProducer(logger)
+	defer transferenceQueue.Producer.Close()
 
 	as := ca.NewAuthService(client, "some-secret", logger)
-	ds := cd.NewDepositService(client, logger, bq)
-
-	logger.Info("services init")
+	ds := cd.NewDepositService(client, logger, depositQueue)
+	ts := ct.NewTransferService(client, logger, transferenceQueue)
 
 	r := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
@@ -38,6 +40,7 @@ func main() {
 
 	auth.RegisterRoutes(r, as)
 	deposit.RegisterRoutes(r, as, ds)
+	transference.RegisterRoutes(r, as, ts)
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

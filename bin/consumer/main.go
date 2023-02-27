@@ -143,14 +143,14 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 
 			if message.Topic == transference.PROCESS_TRANSFERENCE_TOPIC {
 
-				body := new(deposit.AddDepositMessagePayload)
+				body := new(transference.TransferenceToProcessPayload)
 				if err := borsh.Deserialize(body, message.Value); err != nil {
 					consumer.logger.Error("error deserializing payload", zap.Error(err))
 					continue
 				}
 
-				consumer.logger.Sugar().Infof("processing deposit: %s", body.DepositID.String())
-				if err := consumer.depositService.ProcessDeposit(context.Background(), *body, 5); err != nil {
+				consumer.logger.Sugar().Infof("processing transference: %s", body.TransferID.String())
+				if err := consumer.transferenceService.ProcessTransfer(context.Background(), *body, 5); err != nil {
 					consumer.logger.Error("error processing deposit", zap.Error(err))
 					continue
 				}
